@@ -18,9 +18,10 @@ import lombok.NoArgsConstructor;
 import lombok.ToString;
 import lombok.experimental.SuperBuilder;
 
-import java.io.ByteArrayInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.net.URI;
-import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 
 @SuperBuilder
@@ -86,22 +87,25 @@ public class ExportContainerSbom extends AbstractAikidoTask implements RunnableT
         runContext.logger().info("Exporting Aikido SBOM for container repository '{}' as {}", rContainerId, rFormat);
 
         try (var client = client(runContext)) {
-            String body;
+            var extension = rFormat == SbomFormat.CSV ? ".csv" : ".json";
+            var tempFile = runContext.workingDir().createTempFile(extension).toFile();
             try {
-                body = client.getText("/containers/" + rContainerId + "/licenses/export", query, "repositories:read");
+                client.getStream("/containers/" + rContainerId + "/licenses/export", query, "repositories:read", inputStream -> {
+                    try (var out = new FileOutputStream(tempFile)) {
+                        inputStream.transferTo(out);
+                    } catch (IOException e) {
+                        throw new UncheckedIOException(e);
+                    }
+                });
             } catch (AikidoApiException e) {
                 if (e.getMessage() != null && e.getMessage().contains("HTTP 404")) {
                     throw new IllegalStateException("No SBOM available for Aikido container '" + rContainerId + "' — it has likely not completed a scan yet. Run ScanContainer first.", e);
                 }
                 throw e;
             }
-            var extension = rFormat == SbomFormat.CSV ? ".csv" : ".json";
-            var content = body == null ? "" : body;
-            var uri = runContext.storage().putFile(
-                new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8)),
-                "aikido-container-sbom" + extension
-            );
-            return Output.builder().uri(uri).size((long) content.getBytes(StandardCharsets.UTF_8).length).build();
+            var size = tempFile.length();
+            var uri = runContext.storage().putFile(tempFile, "aikido-container-sbom" + extension);
+            return Output.builder().uri(uri).size(size).build();
         }
     }
 

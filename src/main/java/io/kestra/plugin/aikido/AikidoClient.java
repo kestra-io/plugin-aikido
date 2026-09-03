@@ -14,15 +14,19 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.io.Closeable;
+import java.io.InputStream;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 /**
  * Wraps a Kestra {@link HttpClient} with Aikido's OAuth2 client-credentials flow (acquire on first
@@ -69,9 +73,47 @@ public final class AikidoClient implements Closeable {
         return MAPPER.readValue(body, listType);
     }
 
-    /** Raw response body, used for CSV/SBOM export passthrough where the payload is not necessarily JSON. */
+    /** Raw response body, used for small structured responses where the payload is not necessarily JSON. */
     public String getText(String path, Map<String, Object> query, String scope) throws Exception {
         return raw("GET", path, query, null, scope, "export from Aikido API GET " + path).getBody();
+    }
+
+    /**
+     * Streams the raw response body to {@code consumer} instead of buffering it as a {@code String} —
+     * used for exports/SBOMs whose payload size is unbounded. The stream is only valid for the duration
+     * of the call; the caller must fully consume or copy it before returning.
+     */
+    public void getStream(String path, Map<String, Object> query, String scope, Consumer<InputStream> consumer) throws Exception {
+        streamRaw("GET", path, query, scope, "export from Aikido API GET " + path, consumer, 0, 0);
+    }
+
+    private void streamRaw(String method, String path, Map<String, Object> query, String scope, String action, Consumer<InputStream> consumer, int authRetries, int rateLimitRetries) throws Exception {
+        var request = HttpRequest.builder()
+            .method(method)
+            .uri(buildUri(apiBaseUrl, path, query))
+            .addHeader("Authorization", "Bearer " + token())
+            .addHeader("Accept", "*/*")
+            .build();
+
+        try {
+            httpClient.request(request, response -> consumer.accept(response.getBody() != null ? response.getBody() : InputStream.nullInputStream()));
+        } catch (HttpClientResponseException e) {
+            var status = e.getResponse().getStatus().getCode();
+
+            if (status == 401 && authRetries == 0) {
+                accessToken = null;
+                streamRaw(method, path, query, scope, action, consumer, authRetries + 1, rateLimitRetries);
+                return;
+            }
+
+            if (status == 429 && rateLimitRetries < MAX_RATE_LIMIT_RETRIES) {
+                sleepBeforeRetry(retryAfterSeconds(e));
+                streamRaw(method, path, query, scope, action, consumer, authRetries, rateLimitRetries + 1);
+                return;
+            }
+
+            throw mapError(e, scope, action);
+        }
     }
 
     public <T> T put(String path, Object jsonBody, String scope, Class<T> type) throws Exception {
@@ -223,6 +265,12 @@ public final class AikidoClient implements Closeable {
 
     private URI buildUri(String base, String path, Map<String, Object> query) {
         var resolvedPath = path.startsWith("/") ? path : "/" + path;
+        // Every segment is encoded, not just the interpolated IDs — literal segments (e.g. "issues", "scan")
+        // are plain ASCII and round-trip unchanged, so this is safe without the caller having to know which
+        // segments are dynamic.
+        var encodedPath = Arrays.stream(resolvedPath.split("/", -1))
+            .map(segment -> segment.isEmpty() ? segment : encodePathSegment(segment))
+            .collect(Collectors.joining("/"));
         var params = new LinkedHashMap<String, Object>();
         if (query != null) {
             query.forEach((key, value) -> {
@@ -231,7 +279,11 @@ public final class AikidoClient implements Closeable {
                 }
             });
         }
-        return URI.create(base + resolvedPath + buildQueryString(params));
+        return URI.create(base + encodedPath + buildQueryString(params));
+    }
+
+    private String encodePathSegment(String segment) {
+        return encode(segment).replace("+", "%20");
     }
 
     private String buildQueryString(Map<String, Object> params) {

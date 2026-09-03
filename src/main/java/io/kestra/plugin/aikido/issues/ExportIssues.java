@@ -20,8 +20,13 @@ import lombok.ToString;
 import lombok.experimental.SuperBuilder;
 import reactor.core.publisher.Flux;
 
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.FileWriter;
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -165,16 +170,25 @@ public class ExportIssues extends AbstractAikidoTask implements RunnableTask<Exp
         withFormat.put("format", "csv");
         withFormat.put("page", 0);
         withFormat.put("per_page", PAGE_SIZE);
-        var csv = client.getText("/issues/export", withFormat, "issues:read");
-        var lines = csv == null ? 0 : (int) csv.lines().count();
+
+        var tempFile = runContext.workingDir().createTempFile(".csv").toFile();
+        client.getStream("/issues/export", withFormat, "issues:read", inputStream -> {
+            try (var out = new FileOutputStream(tempFile)) {
+                inputStream.transferTo(out);
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+        });
+
+        long lines;
+        try (var reader = new BufferedReader(new FileReader(tempFile, StandardCharsets.UTF_8))) {
+            lines = reader.lines().count();
+        }
         if (lines >= PAGE_SIZE) {
             runContext.logger().warn(CSV_TRUNCATION_WARNING, lines);
         }
-        var uri = runContext.storage().putFile(
-            new java.io.ByteArrayInputStream((csv == null ? "" : csv).getBytes(StandardCharsets.UTF_8)),
-            "aikido-issues-export.csv"
-        );
-        return Output.builder().size((long) Math.max(lines - 1, 0)).uri(uri).build();
+        var uri = runContext.storage().putFile(tempFile, "aikido-issues-export.csv");
+        return Output.builder().size(Math.max(lines - 1, 0)).uri(uri).build();
     }
 
     private List<IssueExportRecord> fetchPage(AikidoClient client, int page, Map<String, Object> query) throws Exception {

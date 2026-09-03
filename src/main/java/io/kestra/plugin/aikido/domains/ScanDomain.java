@@ -75,7 +75,12 @@ public class ScanDomain extends AbstractScanTask implements RunnableTask<ScanDom
         var rWaitForCompletion = runContext.render(waitForCompletion).as(Boolean.class).orElse(false);
         var rPollInterval = runContext.render(pollInterval).as(Duration.class).orElse(Duration.ofSeconds(10));
         var rMaxDuration = runContext.render(maxDuration).as(Duration.class).orElse(Duration.ofHours(1));
-        var domainIdLong = Long.parseLong(rDomainId);
+        long domainIdLong;
+        try {
+            domainIdLong = Long.parseLong(rDomainId);
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("domainId must be a numeric Aikido domain ID, got '" + rDomainId + "'.", e);
+        }
 
         var logger = runContext.logger();
         logger.info("Triggering Aikido scan for domain '{}'", rDomainId);

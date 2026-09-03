@@ -48,6 +48,25 @@ class GetIssueTest {
     }
 
     @Test
+    void encodesIssueGroupIdWithSpecialCharacters(WireMockRuntimeInfo wireMockRuntimeInfo) throws Exception {
+        AikidoWireMockStubs.stubAuth();
+        stubFor(get(urlPathEqualTo("/api/public/v1/issues/groups/abc%20def")).willReturn(okJson("""
+            {"id":42,"title":"Vulnerable dependency","type":"open_source","severity":"high","severity_score":75,"group_status":"todo"}
+            """)));
+
+        var task = GetIssue.builder()
+            .baseUrl(Property.ofValue(wireMockRuntimeInfo.getHttpBaseUrl()))
+            .clientId(Property.ofValue("client-id"))
+            .clientSecret(Property.ofValue("client-secret"))
+            .issueGroupId(Property.ofValue("abc def"))
+            .build();
+
+        var output = task.run(runContextFactory.of(Map.of()));
+
+        assertThat(output.getIssue().getId(), is(42L));
+    }
+
+    @Test
     void notFoundFailsWithActionableMessage(WireMockRuntimeInfo wireMockRuntimeInfo) throws Exception {
         AikidoWireMockStubs.stubAuth();
         stubFor(get(urlPathEqualTo("/api/public/v1/issues/groups/999")).willReturn(aResponse().withStatus(404)

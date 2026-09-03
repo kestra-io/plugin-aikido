@@ -9,6 +9,10 @@ import io.kestra.core.runners.RunContextFactory;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
@@ -22,6 +26,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.not;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -117,6 +122,55 @@ class AikidoClientTest {
 
             var single = client.get("/domains", Map.of(), "domains:read", Map.class);
             assertThat(single, nullValue());
+        }
+    }
+
+    @Test
+    void streamsResponseBodyWithoutBufferingItAsAString(WireMockRuntimeInfo wireMockRuntimeInfo) throws Exception {
+        AikidoWireMockStubs.stubAuth();
+        stubFor(get(urlPathEqualTo("/api/public/v1/issues/export")).willReturn(aResponse()
+            .withHeader("Content-Type", "text/csv")
+            .withBody("id,type\n1,sast\n")));
+
+        try (var client = client(wireMockRuntimeInfo)) {
+            var captured = new ByteArrayOutputStream();
+            client.getStream("/issues/export", Map.of(), "issues:read", inputStream -> {
+                try {
+                    inputStream.transferTo(captured);
+                } catch (IOException e) {
+                    throw new UncheckedIOException(e);
+                }
+            });
+            assertThat(captured.toString(StandardCharsets.UTF_8), is("id,type\n1,sast\n"));
+        }
+    }
+
+    @Test
+    void streamMapsErrorsLikeEveryOtherCall(WireMockRuntimeInfo wireMockRuntimeInfo) throws Exception {
+        AikidoWireMockStubs.stubAuth();
+        stubFor(get(urlPathEqualTo("/api/public/v1/issues/export")).willReturn(aResponse().withStatus(404)
+            .withHeader("Content-Type", "application/json")
+            .withBody("""
+                {"reason_phrase":"export not found"}
+                """)));
+
+        try (var client = client(wireMockRuntimeInfo)) {
+            var ex = assertThrows(AikidoApiException.class, () -> client.getStream("/issues/export", Map.of(), "issues:read", inputStream -> { }));
+            assertThat(ex.getMessage(), containsString("404"));
+            assertThat(ex.getMessage(), containsString("export not found"));
+        }
+    }
+
+    @Test
+    void encodesPathSegmentsWithSpecialCharacters(WireMockRuntimeInfo wireMockRuntimeInfo) throws Exception {
+        AikidoWireMockStubs.stubAuth();
+        stubFor(get(urlPathEqualTo("/api/public/v1/issues/groups/abc%20def")).willReturn(okJson("""
+            {"id":42}
+            """)));
+
+        try (var client = client(wireMockRuntimeInfo)) {
+            var issue = client.get("/issues/groups/abc def", Map.of(), "issues:read", Map.class);
+            assertThat(issue.get("id"), is(42));
         }
     }
 

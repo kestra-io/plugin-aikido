@@ -1,6 +1,7 @@
 package io.kestra.plugin.aikido;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.kestra.core.http.client.HttpClient;
 import io.kestra.core.http.client.configurations.HttpConfiguration;
 import io.kestra.core.http.client.configurations.TimeoutConfiguration;
@@ -41,7 +42,7 @@ import java.util.Set;
 @Getter
 @NoArgsConstructor
 public abstract class AbstractAikidoTrigger extends AbstractTrigger implements PollingTriggerInterface, AikidoConnectionInterface {
-    private static final com.fasterxml.jackson.databind.ObjectMapper MAPPER = JacksonMapper.ofJson();
+    private static final ObjectMapper MAPPER = JacksonMapper.ofJson();
 
     protected static final Duration HTTP_CONNECT_TIMEOUT = Duration.ofSeconds(10);
     protected static final Duration HTTP_READ_IDLE_TIMEOUT = Duration.ofSeconds(30);

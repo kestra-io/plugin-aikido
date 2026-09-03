@@ -17,6 +17,8 @@ import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.notNullValue;
 
 @KestraTest
@@ -40,8 +42,14 @@ class ExportContainerSbomTest {
             .format(Property.ofValue(SbomFormat.CSV))
             .build();
 
-        var output = task.run(runContextFactory.of(Map.of()));
+        var runContext = runContextFactory.of(Map.of());
+        var output = task.run(runContext);
 
         assertThat(output.getUri(), notNullValue());
+        assertThat(output.getSize(), greaterThan(0L));
+        try (var inputStream = runContext.storage().getFile(output.getUri())) {
+            var content = new String(inputStream.readAllBytes());
+            assertThat(content, containsString("lodash"));
+        }
     }
 }

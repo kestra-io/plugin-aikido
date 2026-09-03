@@ -51,6 +51,21 @@ class ScanDomainTest {
     }
 
     @Test
+    void nonNumericDomainIdFailsWithActionableMessage() {
+        var task = ScanDomain.builder()
+            .baseUrl(Property.ofValue("http://localhost"))
+            .clientId(Property.ofValue("client-id"))
+            .clientSecret(Property.ofValue("client-secret"))
+            .domainId(Property.ofValue("not-a-number"))
+            .build();
+
+        var runContext = runContextFactory.of(Map.of());
+        var ex = assertThrows(IllegalArgumentException.class, () -> task.run(runContext));
+        assertThat(ex.getMessage(), containsString("domainId"));
+        assertThat(ex.getMessage(), containsString("not-a-number"));
+    }
+
+    @Test
     void notFoundDomainFailsWithMessage(WireMockRuntimeInfo wireMockRuntimeInfo) throws Exception {
         AikidoWireMockStubs.stubAuth();
         stubFor(post(urlPathEqualTo("/api/public/v1/domains/scan")).willReturn(aResponse().withStatus(404)
