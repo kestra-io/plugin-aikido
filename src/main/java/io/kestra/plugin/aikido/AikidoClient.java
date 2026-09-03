@@ -73,11 +73,6 @@ public final class AikidoClient implements Closeable {
         return MAPPER.readValue(body, listType);
     }
 
-    /** Raw response body, used for small structured responses where the payload is not necessarily JSON. */
-    public String getText(String path, Map<String, Object> query, String scope) throws Exception {
-        return raw("GET", path, query, null, scope, "export from Aikido API GET " + path).getBody();
-    }
-
     /**
      * Streams the raw response body to {@code consumer} instead of buffering it as a {@code String} —
      * used for exports/SBOMs whose payload size is unbounded. The stream is only valid for the duration
