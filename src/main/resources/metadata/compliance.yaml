@@ -1,0 +1,8 @@
+group: io.kestra.plugin.aikido.compliance
+name: "aikido-compliance"
+title: "Aikido Compliance"
+description: "Tasks for retrieving Aikido compliance framework overviews."
+body: "Fetch the rule-by-rule compliance overview for ISO 27001, NIS2, or SOC 2."
+videos: []
+createdBy: "Kestra Core Team"
+managedBy: "Kestra Core Team"
