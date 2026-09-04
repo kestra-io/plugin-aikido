@@ -63,24 +63,27 @@ public class GetComplianceReport extends AbstractAikidoTask implements RunnableT
         runContext.logger().info("Fetching Aikido {} compliance overview", rFramework);
 
         try (var client = client(runContext)) {
-            var entries = client.getArray("/report/" + rFramework.pathSegment() + "/overview", null, "reports:read", ComplianceOverviewEntry.class);
-            var entry = entries.stream().findFirst().orElse(null);
-            if (entry == null) {
+            var overview = client.get("/report/" + rFramework.pathSegment() + "/overview", null, "reports:read", ComplianceOverviewResponse.class);
+            if (overview == null) {
                 throw new IllegalStateException("Aikido returned no compliance data for framework '" + rFramework + "' — verify the account has this framework enabled.");
             }
             return Output.builder()
-                .overview(entry.getOverview())
-                .totalComplyingRuleCount(entry.getTotalComplyingRuleCount())
-                .totalRuleCount(entry.getTotalRuleCount())
+                .overview(overview.getOverview())
+                .totalComplyingRuleCount(overview.getTotalComplyingRuleCount())
+                .totalRuleCount(overview.getTotalRuleCount())
                 .build();
         }
     }
 
+    /**
+     * {@code GET /report/{framework}/overview} returns this single object — Aikido's OpenAPI spec declares the
+     * response as an array, but the live API (verified on soc2/iso/nis2) returns the object directly.
+     */
     @Getter
     @Setter
     @NoArgsConstructor
     @JsonIgnoreProperties(ignoreUnknown = true)
-    private static class ComplianceOverviewEntry {
+    private static class ComplianceOverviewResponse {
         private Map<String, Object> overview;
         @JsonProperty("total_complying_rule_count")
         private Integer totalComplyingRuleCount;

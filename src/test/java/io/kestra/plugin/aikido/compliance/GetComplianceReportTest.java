@@ -29,7 +29,7 @@ class GetComplianceReportTest {
     void run(WireMockRuntimeInfo wireMockRuntimeInfo) throws Exception {
         AikidoWireMockStubs.stubAuth();
         stubFor(get(urlPathEqualTo("/api/public/v1/report/iso/overview")).willReturn(okJson("""
-            [{"overview":{"technological_controls":[]},"total_complying_rule_count":1,"total_rule_count":3}]
+            {"overview":{"technological_controls":[]},"total_complying_rule_count":1,"total_rule_count":3}
             """)));
 
         var task = GetComplianceReport.builder()
