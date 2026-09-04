@@ -58,6 +58,12 @@ dependencies {
  **********************************************************************************************************************/
 test {
     useJUnitPlatform()
+
+    // The sanity-check flow passes clientId/clientSecret as `{{ secret(...) }}` expressions,
+    // which Kestra requires for properties annotated `@PluginProperty(secret = true)`.
+    // Kestra's local secret backend reads them from base64-encoded SECRET_<NAME> env vars.
+    environment 'SECRET_AIKIDO_CLIENT_ID', 'c2FuaXR5LWNsaWVudC1pZA=='
+    environment 'SECRET_AIKIDO_CLIENT_SECRET', 'c2FuaXR5LWNsaWVudC1zZWNyZXQ='
 }
 
 dependencies {
@@ -88,6 +94,7 @@ dependencies {
     testImplementation "org.junit.jupiter:junit-jupiter-engine"
     testImplementation "org.hamcrest:hamcrest"
     testImplementation "org.hamcrest:hamcrest-library"
+    testImplementation "org.wiremock:wiremock-jetty12"
 }
 
 /**********************************************************************************************************************\

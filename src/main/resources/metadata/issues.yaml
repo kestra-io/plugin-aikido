@@ -1,0 +1,8 @@
+group: io.kestra.plugin.aikido.issues
+name: "aikido-issues"
+title: "Aikido Issues"
+description: "Tasks and a trigger for listing, fetching, exporting, and snoozing Aikido security issues."
+body: "List and fetch open issue groups, export issues to CSV/JSON, snooze or unsnooze issues, and trigger a flow on newly detected issues above a severity threshold."
+videos: []
+createdBy: "Kestra Core Team"
+managedBy: "Kestra Core Team"

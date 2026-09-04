@@ -1,7 +1,7 @@
 @PluginSubGroup(
     title = "Aikido",
-    description = "Aikido plugin for Kestra",
-    categories = PluginSubGroup.PluginCategory.DATA
+    description = "Tasks and triggers for automating Aikido Security scans, issue triage, and compliance reporting.",
+    categories = PluginSubGroup.PluginCategory.INFRASTRUCTURE
 )
 package io.kestra.plugin.aikido;
 

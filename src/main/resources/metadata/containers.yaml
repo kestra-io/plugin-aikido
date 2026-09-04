@@ -1,0 +1,8 @@
+group: io.kestra.plugin.aikido.containers
+name: "aikido-containers"
+title: "Aikido Containers"
+description: "Tasks for listing, scanning, and exporting the SBOM of Aikido container repositories."
+body: "List connected container repositories, trigger a rescan with optional wait-for-completion, and export a container's SBOM or license report."
+videos: []
+createdBy: "Kestra Core Team"
+managedBy: "Kestra Core Team"

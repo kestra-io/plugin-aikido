@@ -1,8 +1,8 @@
 group: io.kestra.plugin.aikido
 name: "aikido"
 title: "Aikido"
-description: "Aikido plugin for Kestra"
-body: ""
+description: "Aikido Security plugin for Kestra"
+body: "Scan repositories, containers, and domains for vulnerabilities; triage and export security issues; retrieve compliance reports; and react to new critical findings in real time with the Aikido Security public API."
 videos: []
 createdBy: "Kestra Core Team"
 managedBy: "Kestra Core Team"

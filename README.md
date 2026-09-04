@@ -39,14 +39,23 @@
 
 ## Why
 
-- What user problem does this solve? Teams need a concrete starting point for building and validating new Kestra plugins without recreating the same project scaffolding from scratch.
-- Why would a team adopt this plugin in a workflow? It gives plugin authors a ready-made reference repo they can adapt alongside their own build, test, and publishing workflow.
-- What operational/business outcome does it enable? It shortens plugin delivery time, reduces setup mistakes, and makes internal or partner plugin development more repeatable.
+Teams that use [Aikido Security](https://www.aikido.dev/) need to scan repositories, containers, and domains for
+vulnerabilities, triage and export security issues, retrieve compliance reports, and react to new critical findings
+without brittle shell scripts or custom API glue code. This plugin embeds those workflows directly into Kestra.
 
 ## What
 
-- Provides plugin components under `io.kestra.plugin.aikido`.
-- Includes classes such as `Example`, `Trigger`.
+Provides plugin components under `io.kestra.plugin.aikido`:
+
+- `issues` — `ListOpen`, `Get`, `Export`, `Snooze`, `Unsnooze`, and the `Trigger`
+  polling trigger.
+- `repositories` — `List`, `Scan`, `ExportSbom`.
+- `containers` — `List`, `Scan`, `ExportSbom`.
+- `domains` — `List`, `Scan`.
+- `clouds` — `List`, `ListAssets`.
+- `compliance` — `GetReport`.
+
+See `src/main/resources/doc/io.kestra.plugin.aikido.md` for authentication setup and per-task details.
 
 ## Documentation
 * Full documentation can be found under: [kestra.io/docs](https://kestra.io/docs)

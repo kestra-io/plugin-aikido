@@ -1,0 +1,8 @@
+group: io.kestra.plugin.aikido.domains
+name: "aikido-domains"
+title: "Aikido Domains"
+description: "Tasks for listing and scanning domains connected to Aikido's surface/DAST monitoring."
+body: "List monitored domains and trigger a DAST scan on a connected domain with optional wait-for-completion."
+videos: []
+createdBy: "Kestra Core Team"
+managedBy: "Kestra Core Team"

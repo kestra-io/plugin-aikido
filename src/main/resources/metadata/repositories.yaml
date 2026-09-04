@@ -1,0 +1,8 @@
+group: io.kestra.plugin.aikido.repositories
+name: "aikido-repositories"
+title: "Aikido Repositories"
+description: "Tasks for listing, scanning, and exporting the SBOM of Aikido code repositories."
+body: "List connected code repositories, trigger SAST/IaC/secrets scans with optional wait-for-completion, and export a repository's SBOM or license report."
+videos: []
+createdBy: "Kestra Core Team"
+managedBy: "Kestra Core Team"

@@ -1,0 +1,8 @@
+group: io.kestra.plugin.aikido.clouds
+name: "aikido-clouds"
+title: "Aikido Clouds"
+description: "Tasks for listing Aikido's connected cloud environments and their discovered cloud assets."
+body: "List connected cloud environments and discovered cloud assets, with filtering and STORE support for large inventories."
+videos: []
+createdBy: "Kestra Core Team"
+managedBy: "Kestra Core Team"

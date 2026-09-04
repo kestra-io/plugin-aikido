@@ -1,0 +1,14 @@
+id: aikido_scan_repository
+namespace: company.security
+
+tasks:
+  - id: scan
+    type: io.kestra.plugin.aikido.repositories.Scan
+    baseUrl: "http://localhost:18099"
+    clientId: "{{ secret('AIKIDO_CLIENT_ID') }}"
+    clientSecret: "{{ secret('AIKIDO_CLIENT_SECRET') }}"
+    repositoryId: "7"
+
+  - id: log_result
+    type: io.kestra.plugin.core.log.Log
+    message: "Scan triggered: {{ outputs.scan.triggered }}"
