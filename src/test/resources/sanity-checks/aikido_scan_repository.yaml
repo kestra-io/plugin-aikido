@@ -5,8 +5,8 @@ tasks:
   - id: scan
     type: io.kestra.plugin.aikido.repositories.ScanRepository
     baseUrl: "http://localhost:18099"
-    clientId: sanity-client-id
-    clientSecret: sanity-client-secret
+    clientId: "{{ secret('AIKIDO_CLIENT_ID') }}"
+    clientSecret: "{{ secret('AIKIDO_CLIENT_SECRET') }}"
     repositoryId: "7"
 
   - id: log_result
