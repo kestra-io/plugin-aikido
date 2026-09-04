@@ -4,12 +4,12 @@
 
 - Provides plugin components under `io.kestra.plugin.aikido` for [Aikido Security](https://www.aikido.dev/).
 - Sub-packages: `issues`, `repositories`, `containers`, `domains`, `clouds`, `compliance`.
-- Tasks: `issues.ListOpenIssues`, `issues.GetIssue`, `issues.ExportIssues`, `issues.SnoozeIssue`,
-  `issues.UnsnoozeIssue`, `repositories.ListRepositories`, `repositories.ScanRepository`,
-  `repositories.ExportRepositorySbom`, `containers.ListContainers`, `containers.ScanContainer`,
-  `containers.ExportContainerSbom`, `domains.ListDomains`, `domains.ScanDomain`, `clouds.ListClouds`,
-  `clouds.ListCloudAssets`, `compliance.GetComplianceReport`.
-- Trigger: `issues.IssueTrigger` (polling; fires on newly detected issue groups above `severityThreshold`).
+- Tasks: `issues.ListOpen`, `issues.Get`, `issues.Export`, `issues.Snooze`,
+  `issues.Unsnooze`, `repositories.List`, `repositories.Scan`,
+  `repositories.ExportSbom`, `containers.List`, `containers.Scan`,
+  `containers.ExportSbom`, `domains.List`, `domains.Scan`, `clouds.List`,
+  `clouds.ListAssets`, `compliance.GetReport`.
+- Trigger: `issues.Trigger` (polling; fires on newly detected issue groups above `severityThreshold`).
 
 ## Why
 
@@ -30,19 +30,19 @@ Single-module plugin. Source packages under `io.kestra.plugin.aikido`:
   page-walking helper), `AikidoConnectionInterface` (shared `@Schema` wording), `SbomFormat` (shared by
   `repositories`/`containers` SBOM exports).
 - `issues` — issue listing/export/snooze tasks, `Severity`/`ExportFormat` enums, `IssueGroup`/`Location`/
-  `IssueExportRecord` response models, and the `IssueTrigger` polling trigger.
+  `IssueExportRecord` response models, and the `Trigger` polling trigger.
 - `repositories` — code repository listing/scan/SBOM export tasks and the `CodeRepository`/`SbomScope` models.
 - `containers` — container repository listing/scan/SBOM export tasks and the `Container` model.
 - `domains` — domain listing/DAST-scan tasks and the `Domain` model.
 - `clouds` — cloud environment and cloud asset listing tasks and the `Cloud`/`CloudAsset` models.
-- `compliance` — `GetComplianceReport` and the `ComplianceFramework` enum.
+- `compliance` — `GetReport` and the `ComplianceFramework` enum.
 
 Authentication: every task/trigger holds `clientId`/`clientSecret` (both secret) and an optional `baseUrl`
 (defaults to `https://app.aikido.dev`, supports the `.us`/`.au`/`.me` regional hosts). `AikidoClient` exchanges
 these for a short-lived JWT via `POST {baseUrl}/api/oauth/token`, refreshing at 90% of the token's lifetime. The
 token cache is instance-scoped (one `AikidoClient` per task run or trigger poll) — never static/JVM-wide.
 
-Scan tasks (`ScanRepository`, `ScanContainer`, `ScanDomain`) share `AbstractScanTask`'s `waitForCompletion` /
+Scan tasks (`repositories.Scan`, `containers.Scan`, `domains.Scan`) share `AbstractScanTask`'s `waitForCompletion` /
 `pollInterval` / `maxDuration` properties: since Aikido's scan-trigger endpoints are fire-and-forget with no scan ID
 or status endpoint, completion is approximated by polling the resource's `last_scanned_at` timestamp until it
 advances past its pre-scan baseline.
@@ -67,8 +67,8 @@ plugin-aikido/
 ## Local rules
 
 - Base the wording on the implemented packages and classes, not on template README text.
-- Every list task (`ListOpenIssues`, `ListRepositories`, `ListContainers`, `ListDomains`, `ListClouds`,
-  `ListCloudAssets`) shares the same `rows`/`row`/`uri`/`size` output shape driven by `Property<FetchType>`.
+- Every list task (`issues.ListOpen`, `repositories.List`, `containers.List`, `domains.List`,
+  `clouds.List`, `clouds.ListAssets`) shares the same `rows`/`row`/`uri`/`size` output shape driven by `Property<FetchType>`.
 - Aikido's OAuth2 scopes are per-operation; `AikidoClient` calls always pass the required scope so a `403` names it
   in the error message.
 

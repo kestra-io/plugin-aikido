@@ -47,13 +47,13 @@ without brittle shell scripts or custom API glue code. This plugin embeds those 
 
 Provides plugin components under `io.kestra.plugin.aikido`:
 
-- `issues` — `ListOpenIssues`, `GetIssue`, `ExportIssues`, `SnoozeIssue`, `UnsnoozeIssue`, and the `IssueTrigger`
+- `issues` — `ListOpen`, `Get`, `Export`, `Snooze`, `Unsnooze`, and the `Trigger`
   polling trigger.
-- `repositories` — `ListRepositories`, `ScanRepository`, `ExportRepositorySbom`.
-- `containers` — `ListContainers`, `ScanContainer`, `ExportContainerSbom`.
-- `domains` — `ListDomains`, `ScanDomain`.
-- `clouds` — `ListClouds`, `ListCloudAssets`.
-- `compliance` — `GetComplianceReport`.
+- `repositories` — `List`, `Scan`, `ExportSbom`.
+- `containers` — `List`, `Scan`, `ExportSbom`.
+- `domains` — `List`, `Scan`.
+- `clouds` — `List`, `ListAssets`.
+- `compliance` — `GetReport`.
 
 See `src/main/resources/doc/io.kestra.plugin.aikido.md` for authentication setup and per-task details.
 

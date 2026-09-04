@@ -1,6 +1,6 @@
 package io.kestra.plugin.aikido.repositories;
 
-/** Dependency scope for `ExportRepositorySbom`. */
+/** Dependency scope for `ExportSbom`. */
 public enum SbomScope {
     ALL,
     ONLY_DEV_DEPS,

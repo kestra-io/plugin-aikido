@@ -8,7 +8,7 @@ import lombok.Setter;
 
 import java.util.List;
 
-/** Internal wrapper for `GET /clouds/assets`, which — unlike the other list endpoints — wraps its items instead of returning a bare array. Never exposed as a task Output; `ListCloudAssets` flattens it into `rows`/`uri`/`size`. */
+/** Internal wrapper for `GET /clouds/assets`, which — unlike the other list endpoints — wraps its items instead of returning a bare array. Never exposed as a task Output; `ListAssets` flattens it into `rows`/`uri`/`size`. */
 @Getter
 @Setter
 @NoArgsConstructor

@@ -1,0 +1,79 @@
+package io.kestra.plugin.aikido.issues;
+
+import io.kestra.core.models.annotations.Example;
+import io.kestra.core.models.annotations.Plugin;
+import io.kestra.core.models.annotations.PluginProperty;
+import io.kestra.core.models.property.Property;
+import io.kestra.core.models.tasks.RunnableTask;
+import io.kestra.core.runners.RunContext;
+import io.kestra.plugin.aikido.AbstractAikidoTask;
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.NotNull;
+import lombok.Builder;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
+import lombok.experimental.SuperBuilder;
+
+@SuperBuilder
+@ToString
+@EqualsAndHashCode
+@Getter
+@NoArgsConstructor
+@Schema(
+    title = "Get details of an Aikido issue group",
+    description = "Fetches full details for a single Aikido issue group by ID."
+)
+@Plugin(
+    examples = {
+        @Example(
+            title = "Fetch details of a specific issue group",
+            full = true,
+            code = """
+                id: get_issue_details
+                namespace: company.security
+
+                inputs:
+                  - id: issue_group_id
+                    type: STRING
+
+                tasks:
+                  - id: get_issue
+                    type: io.kestra.plugin.aikido.issues.Get
+                    clientId: "{{ secret('AIKIDO_CLIENT_ID') }}"
+                    clientSecret: "{{ secret('AIKIDO_CLIENT_SECRET') }}"
+                    issueGroupId: "{{ inputs.issue_group_id }}"
+                """
+        )
+    }
+)
+public class Get extends AbstractAikidoTask implements RunnableTask<Get.Output> {
+    @Schema(title = "Issue group ID")
+    @NotNull
+    @PluginProperty(group = "main")
+    private Property<String> issueGroupId;
+
+    @Override
+    public Output run(RunContext runContext) throws Exception {
+        var rIssueGroupId = runContext.render(issueGroupId).as(String.class)
+            .orElseThrow(() -> new IllegalArgumentException("issueGroupId is required to fetch an Aikido issue."));
+
+        runContext.logger().info("Fetching Aikido issue group '{}'", rIssueGroupId);
+
+        try (var client = client(runContext)) {
+            var issue = client.get("/issues/groups/" + rIssueGroupId, null, "issues:read", IssueGroup.class);
+            if (issue == null) {
+                throw new IllegalStateException("No issue group found with ID '" + rIssueGroupId + "' — verify the ID or that the API client has access to it.");
+            }
+            return Output.builder().issue(issue).build();
+        }
+    }
+
+    @Builder
+    @Getter
+    public static class Output implements io.kestra.core.models.tasks.Output {
+        @Schema(title = "The issue group's details")
+        private final IssueGroup issue;
+    }
+}

@@ -25,64 +25,64 @@ operation; the error message names the missing scope.
 
 ## Gotchas
 
-- **Scans are fire-and-forget.** Aikido's scan-trigger endpoints (`ScanRepository`, `ScanContainer`, `ScanDomain`)
+- **Scans are fire-and-forget.** Aikido's scan-trigger endpoints (`repositories.Scan`, `containers.Scan`, `domains.Scan`)
   return no scan ID and there is no scan-status endpoint. `waitForCompletion` approximates completion by polling the
   resource's `last_scanned_at` timestamp until it advances past its pre-scan value — this observes "a scan
   finished" on the resource, not necessarily "the scan this task started finished"; a concurrent scan on the same
   resource can also satisfy it.
-- **`/open-issue-groups` has no server-side severity filter.** `ListOpenIssues.severities` and
-  `IssueTrigger.severityThreshold` are applied client-side after fetching. `ExportIssues.filterSeverities` is a
+- **`/open-issue-groups` has no server-side severity filter.** `issues.ListOpen.severities` and
+  `issues.Trigger.severityThreshold` are applied client-side after fetching. `issues.Export.filterSeverities` is a
   genuine server-side filter, since the `/issues/export` endpoint supports it directly.
-- **`ListCloudAssets` is the one list endpoint that doesn't return a bare array** — its response wraps items in
+- **`clouds.ListAssets` is the one list endpoint that doesn't return a bare array** — its response wraps items in
   `{ assets, totalCount }` and paginates with `limit` instead of `per_page`. This plugin flattens it into the same
   `rows`/`uri`/`size` output shape as every other list task.
-- **`ScanRepository` requires an active repository.** Aikido rejects a scan on an inactive repository with a
+- **`repositories.Scan` requires an active repository.** Aikido rejects a scan on an inactive repository with a
   `400` — the task surfaces this verbatim, telling you to activate the repository in the Aikido console first.
-- **SBOM export requires a completed scan.** `ExportRepositorySbom` and `ExportContainerSbom` fail with an
+- **SBOM export requires a completed scan.** `repositories.ExportSbom` and `containers.ExportSbom` fail with an
   actionable message (rather than storing an empty/error file) if the resource has no completed scan yet.
 
 ## Tasks
 
 ### Issues (`io.kestra.plugin.aikido.issues`)
 
-- `ListOpenIssues` — lists open issue groups with pagination and `fetchType` support (`FETCH`, `FETCH_ONE`,
+- `ListOpen` — lists open issue groups with pagination and `fetchType` support (`FETCH`, `FETCH_ONE`,
   `STORE`, `NONE`); filters client-side on `severities`.
-- `GetIssue` — fetches full details of a single issue group.
-- `ExportIssues` — exports issues in JSON (fully paginated, honors `fetchType`) or CSV (single non-paginated file,
+- `Get` — fetches full details of a single issue group.
+- `Export` — exports issues in JSON (fully paginated, honors `fetchType`) or CSV (single non-paginated file,
   always stored) format.
-- `SnoozeIssue` / `UnsnoozeIssue` — snooze an issue group until a future point in time (optionally with a reason),
+- `Snooze` / `Unsnooze` — snooze an issue group until a future point in time (optionally with a reason),
   or cancel an active snooze.
 
 ### Repositories (`io.kestra.plugin.aikido.repositories`)
 
-- `ListRepositories` — lists connected code repositories.
-- `ScanRepository` — triggers a SAST/IaC/secrets scan (all three enabled by default); supports `waitForCompletion`.
-- `ExportRepositorySbom` — exports a repository's license/SBOM report as CSV, CycloneDX, or SPDX.
+- `List` — lists connected code repositories.
+- `Scan` — triggers a SAST/IaC/secrets scan (all three enabled by default); supports `waitForCompletion`.
+- `ExportSbom` — exports a repository's license/SBOM report as CSV, CycloneDX, or SPDX.
 
 ### Containers (`io.kestra.plugin.aikido.containers`)
 
-- `ListContainers` — lists connected container repositories.
-- `ScanContainer` — triggers a container rescan; supports `waitForCompletion`.
-- `ExportContainerSbom` — exports a container's license/SBOM report as CSV, CycloneDX, or SPDX.
+- `List` — lists connected container repositories.
+- `Scan` — triggers a container rescan; supports `waitForCompletion`.
+- `ExportSbom` — exports a container's license/SBOM report as CSV, CycloneDX, or SPDX.
 
 ### Domains (`io.kestra.plugin.aikido.domains`)
 
-- `ListDomains` — lists domains connected to Aikido's surface/DAST monitoring.
-- `ScanDomain` — triggers a DAST scan on a connected domain; supports `waitForCompletion`.
+- `List` — lists domains connected to Aikido's surface/DAST monitoring.
+- `Scan` — triggers a DAST scan on a connected domain; supports `waitForCompletion`.
 
 ### Clouds (`io.kestra.plugin.aikido.clouds`)
 
-- `ListClouds` — lists connected cloud environments.
-- `ListCloudAssets` — lists discovered cloud assets, with filtering by type/region/provider/cloud and `fetchType`
+- `List` — lists connected cloud environments.
+- `ListAssets` — lists discovered cloud assets, with filtering by type/region/provider/cloud and `fetchType`
   support for large inventories.
 
 ### Compliance (`io.kestra.plugin.aikido.compliance`)
 
-- `GetComplianceReport` — fetches the rule-by-rule compliance overview for `NIS2`, `SOC2`, or `ISO27001`.
+- `GetReport` — fetches the rule-by-rule compliance overview for `NIS2`, `SOC2`, or `ISO27001`.
 
 ## Triggers
 
-`issues.IssueTrigger` polls `/open-issue-groups` at the configured `interval` and fires one execution per newly
+`issues.Trigger` polls `/open-issue-groups` at the configured `interval` and fires one execution per newly
 discovered issue group above `severityThreshold` (oldest first, one per poll cycle). It tracks the `first_detected_at`
 of the newest delivered issue group in the flow's namespace KV store to avoid re-firing. On the first poll, only the
 baseline is recorded — no execution is fired — to avoid flooding on initial activation. Output includes
