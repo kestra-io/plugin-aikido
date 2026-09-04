@@ -39,6 +39,8 @@ public final class AikidoClient implements Closeable {
     private static final ObjectMapper MAPPER = JacksonMapper.ofJson();
     private static final int MAX_RATE_LIMIT_RETRIES = 3;
     private static final long DEFAULT_RETRY_AFTER_SECONDS = 2;
+    /** Upper bound on a server-supplied `Retry-After`, so an extreme value can't pin a worker thread indefinitely. */
+    private static final long MAX_RETRY_AFTER_SECONDS = 60;
 
     private final RunContext runContext;
     private final HttpClient httpClient;
@@ -172,7 +174,8 @@ public final class AikidoClient implements Closeable {
 
     private long retryAfterSeconds(HttpClientResponseException e) {
         try {
-            return Long.parseLong(e.getResponse().getHeaders().firstValue("Retry-After").orElse(String.valueOf(DEFAULT_RETRY_AFTER_SECONDS)));
+            var seconds = Long.parseLong(e.getResponse().getHeaders().firstValue("Retry-After").orElse(String.valueOf(DEFAULT_RETRY_AFTER_SECONDS)));
+            return Math.min(seconds, MAX_RETRY_AFTER_SECONDS);
         } catch (NumberFormatException nfe) {
             return DEFAULT_RETRY_AFTER_SECONDS;
         }
@@ -221,7 +224,8 @@ public final class AikidoClient implements Closeable {
 
     private AikidoApiException mapError(HttpClientResponseException e, String scope, String action) {
         var status = e.getResponse().getStatus().getCode();
-        var message = errorMessage(e);
+        var body = rawBody(e);
+        var message = errorMessage(body);
 
         var hint = switch (status) {
             case 403 -> " Hint: the API client is missing the required '" + scope + "' scope for this operation.";
@@ -229,18 +233,24 @@ public final class AikidoClient implements Closeable {
             default -> "";
         };
 
-        return new AikidoApiException("Failed to " + action + ": HTTP " + status + " - " + message + hint);
+        return new AikidoApiException("Failed to " + action + ": HTTP " + status + " - " + message + hint, status, body);
     }
 
     /** Never includes the client secret or the Basic auth header — only the response body Aikido itself returned. */
     private String errorMessage(HttpClientResponseException e) {
+        return errorMessage(rawBody(e));
+    }
+
+    private String rawBody(HttpClientResponseException e) {
         var rawBody = e.getResponse().getBody();
-        var body = switch (rawBody) {
+        return switch (rawBody) {
             case null -> "";
             case byte[] bytes -> new String(bytes, StandardCharsets.UTF_8);
             default -> String.valueOf(rawBody);
         };
+    }
 
+    private String errorMessage(String body) {
         if (!body.isBlank()) {
             try {
                 var envelope = MAPPER.readValue(body, ErrorEnvelope.class);

@@ -6,6 +6,7 @@ import com.github.tomakehurst.wiremock.stubbing.Scenario;
 import io.kestra.core.junit.annotations.KestraTest;
 import io.kestra.core.models.property.Property;
 import io.kestra.core.runners.RunContextFactory;
+import io.kestra.plugin.aikido.AikidoApiException;
 import io.kestra.plugin.aikido.AikidoWireMockStubs;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
@@ -68,6 +69,27 @@ class ScanTest {
         var ex = assertThrows(IllegalStateException.class, () -> task.run(runContext));
         assertThat(ex.getMessage(), containsString("must be active"));
         assertThat(ex.getMessage(), containsString("7"));
+    }
+
+    @Test
+    void unrelatedBadRequestIsNotReportedAsInactive(WireMockRuntimeInfo wireMockRuntimeInfo) {
+        AikidoWireMockStubs.stubAuth();
+        stubFor(post(urlPathEqualTo("/api/public/v1/repositories/code/7/scan")).willReturn(aResponse().withStatus(400)
+            .withHeader("Content-Type", "application/json")
+            .withBody("""
+                {"error":"Invalid scan options."}
+                """)));
+
+        var task = Scan.builder()
+            .baseUrl(Property.ofValue(wireMockRuntimeInfo.getHttpBaseUrl()))
+            .clientId(Property.ofValue("client-id"))
+            .clientSecret(Property.ofValue("client-secret"))
+            .repositoryId(Property.ofValue("7"))
+            .build();
+
+        var runContext = runContextFactory.of(Map.of());
+        var ex = assertThrows(AikidoApiException.class, () -> task.run(runContext));
+        assertThat(ex.getMessage(), containsString("Invalid scan options"));
     }
 
     @Test

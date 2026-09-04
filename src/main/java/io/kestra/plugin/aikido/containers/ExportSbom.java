@@ -98,7 +98,7 @@ public class ExportSbom extends AbstractAikidoTask implements RunnableTask<Expor
                     }
                 });
             } catch (AikidoApiException e) {
-                if (e.getMessage() != null && e.getMessage().contains("HTTP 404")) {
+                if (e.getStatusCode() != null && e.getStatusCode() == 404) {
                     throw new IllegalStateException("No SBOM available for Aikido container '" + rContainerId + "' — it has likely not completed a scan yet. Run Scan first.", e);
                 }
                 throw e;

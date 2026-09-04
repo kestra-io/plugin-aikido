@@ -115,10 +115,7 @@ public class Scan extends AbstractScanTask implements RunnableTask<Scan.Output> 
             try {
                 status = client.post("/repositories/code/" + rRepositoryId + "/scan", query, null, "repositories:write").getStatus().getCode();
             } catch (AikidoApiException e) {
-                if (e.getMessage() != null && e.getMessage().contains("must be active before it can be scanned")) {
-                    throw new IllegalStateException("Aikido repository '" + rRepositoryId + "' must be active before it can be scanned — activate it in the Aikido console first.", e);
-                }
-                throw e;
+                throw mapScanTriggerError(e, "repository", rRepositoryId);
             }
 
             var triggered = status == 204 || status == 200;

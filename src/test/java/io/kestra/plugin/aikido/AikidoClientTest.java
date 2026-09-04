@@ -162,6 +162,22 @@ class AikidoClientTest {
     }
 
     @Test
+    void errorCarriesStatusCodeAndRawBody(WireMockRuntimeInfo wireMockRuntimeInfo) throws Exception {
+        AikidoWireMockStubs.stubAuth();
+        stubFor(get(urlPathEqualTo("/api/public/v1/issues/groups/999")).willReturn(aResponse().withStatus(404)
+            .withHeader("Content-Type", "application/json")
+            .withBody("""
+                {"reason_phrase":"issue group not found"}
+                """)));
+
+        try (var client = client(wireMockRuntimeInfo)) {
+            var ex = assertThrows(AikidoApiException.class, () -> client.get("/issues/groups/999", Map.of(), "issues:read", Map.class));
+            assertThat(ex.getStatusCode(), is(404));
+            assertThat(ex.getResponseBody(), containsString("issue group not found"));
+        }
+    }
+
+    @Test
     void encodesPathSegmentsWithSpecialCharacters(WireMockRuntimeInfo wireMockRuntimeInfo) throws Exception {
         AikidoWireMockStubs.stubAuth();
         stubFor(get(urlPathEqualTo("/api/public/v1/issues/groups/abc%20def")).willReturn(okJson("""

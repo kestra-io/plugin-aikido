@@ -30,6 +30,8 @@ import java.time.Instant;
 @Getter
 @NoArgsConstructor
 public abstract class AbstractScanTask extends AbstractAikidoTask {
+    private static final String MUST_BE_ACTIVE = "must be active before it can be scanned";
+
     @Schema(
         title = "Wait for scan completion",
         description = """
@@ -37,7 +39,9 @@ public abstract class AbstractScanTask extends AbstractAikidoTask {
             advances past its pre-scan value, then returns. Caveat: Aikido's scan-trigger endpoints are \
             fire-and-forget with no scan id and no status endpoint, so this observes "a scan finished" on the \
             resource, not necessarily "the scan this task started finished" — a concurrent scan on the same \
-            resource can also satisfy it. Defaults to `false`, so the task returns immediately after triggering.
+            resource can also satisfy it. The wait blocks a worker thread for its whole duration (up to \
+            `maxDuration`), so budget worker slots accordingly when running many scans concurrently with this \
+            enabled. Defaults to `false`, so the task returns immediately after triggering.
             """
     )
     @Builder.Default
@@ -82,6 +86,22 @@ public abstract class AbstractScanTask extends AbstractAikidoTask {
             "Timed out after " + rMaxDuration + " waiting for the Aikido scan on resource '" + resourceId +
                 "' to complete (last-seen last_scanned_at: " + last + "). The scan may still be running — check the Aikido console, or increase 'maxDuration'."
         );
+    }
+
+    /**
+     * Maps Aikido's "resource must be active before it can be scanned" rejection (an HTTP 400 whose body carries
+     * that wording) to an actionable {@link IllegalStateException}, and returns every other failure untouched.
+     * Matching is on the numeric status plus Aikido's own response body, never on our formatted message.
+     */
+    protected Exception mapScanTriggerError(AikidoApiException e, String resourceKind, String resourceId) {
+        if (e.getStatusCode() != null && e.getStatusCode() == 400
+            && e.getResponseBody() != null && e.getResponseBody().contains(MUST_BE_ACTIVE)) {
+            return new IllegalStateException(
+                "Aikido " + resourceKind + " '" + resourceId + "' must be active before it can be scanned — activate it in the Aikido console first.",
+                e
+            );
+        }
+        return e;
     }
 
     @FunctionalInterface
