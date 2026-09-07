@@ -1,0 +1,14 @@
+id: aikido_get_compliance_report
+namespace: company.security
+
+tasks:
+  - id: compliance
+    type: io.kestra.plugin.aikido.compliance.GetReport
+    baseUrl: "http://localhost:18099"
+    clientId: "{{ secret('AIKIDO_CLIENT_ID') }}"
+    clientSecret: "{{ secret('AIKIDO_CLIENT_SECRET') }}"
+    framework: SOC2
+
+  - id: log_result
+    type: io.kestra.plugin.core.log.Log
+    message: "Compliant rules: {{ outputs.compliance.totalComplyingRuleCount }} / {{ outputs.compliance.totalRuleCount }}"
