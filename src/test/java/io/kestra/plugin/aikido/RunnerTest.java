@@ -9,6 +9,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.get;
+import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
@@ -23,11 +25,21 @@ class RunnerTest {
     void stubs() {
         AikidoWireMockStubs.stubAuth();
         stubFor(post(urlPathEqualTo("/api/public/v1/repositories/code/7/scan")).willReturn(aResponse().withStatus(204)));
+        stubFor(get(urlPathEqualTo("/api/public/v1/report/soc2/overview")).willReturn(okJson("""
+            [{"overview":{"technological_controls":[]},"total_complying_rule_count":1,"total_rule_count":3}]
+            """)));
     }
 
     @Test
     @ExecuteFlow("sanity-checks/aikido_scan_repository.yaml")
     void aikido_scan_repository(Execution execution) {
+        assertThat(execution.getTaskRunList(), hasSize(2));
+        assertThat(execution.getState().getCurrent(), is(State.Type.SUCCESS));
+    }
+
+    @Test
+    @ExecuteFlow("sanity-checks/aikido_get_compliance_report.yaml")
+    void aikido_get_compliance_report(Execution execution) {
         assertThat(execution.getTaskRunList(), hasSize(2));
         assertThat(execution.getState().getCurrent(), is(State.Type.SUCCESS));
     }

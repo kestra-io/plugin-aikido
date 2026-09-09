@@ -63,10 +63,11 @@ public class GetReport extends AbstractAikidoTask implements RunnableTask<GetRep
         runContext.logger().info("Fetching Aikido {} compliance overview", rFramework);
 
         try (var client = client(runContext)) {
-            var overview = client.get("/report/" + rFramework.pathSegment() + "/overview", null, "reports:read", ComplianceOverviewResponse.class);
-            if (overview == null) {
+            var overviews = client.getArray("/report/" + rFramework.pathSegment() + "/overview", null, "reports:read", ComplianceOverviewResponse.class);
+            if (overviews.isEmpty() || overviews.getFirst() == null) {
                 throw new IllegalStateException("Aikido returned no compliance data for framework '" + rFramework + "' — verify the account has this framework enabled.");
             }
+            var overview = overviews.getFirst();
             return Output.builder()
                 .overview(overview.getOverview())
                 .totalComplyingRuleCount(overview.getTotalComplyingRuleCount())
@@ -76,8 +77,9 @@ public class GetReport extends AbstractAikidoTask implements RunnableTask<GetRep
     }
 
     /**
-     * {@code GET /report/{framework}/overview} returns this single object — Aikido's OpenAPI spec declares the
-     * response as an array, but the live API (verified on soc2/iso/nis2) returns the object directly.
+     * {@code GET /report/{framework}/overview} returns a single-element JSON array — the element carries the
+     * overview fields declared below. This is why the call uses {@link io.kestra.plugin.aikido.AikidoClient#getArray}
+     * instead of {@code get}; do not simplify back to a plain object deserialization.
      */
     @Getter
     @Setter
